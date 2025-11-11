@@ -388,6 +388,24 @@ def plot_profiles_SAM_COMBLE():
             plot_profile(z, var, data_slice, output_file)
             print(f"  Saved {output_file}")
 
+    # Calculate and save QT (sum of moisture variables)
+    print("  Computing QT (QV + QN + QI)...", end=' ')
+    data_qv, (x, y, z) = load_data.load_SAM_COMBLE('QV')
+    data_qn, _ = load_data.load_SAM_COMBLE('QN')
+    data_qi, _ = load_data.load_SAM_COMBLE('QI')
+    data_qt = data_qv + data_qn + data_qi
+    print("done")
+
+    # Save QT to netCDF
+    save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+    # Plot QT
+    for t_idx in range(data_qt.shape[3]):
+        data_slice = data_qt[:, :, :, t_idx]
+        output_file = output_dir / f"SAM_COMBLE_t{t_idx}_QT.png"
+        plot_profile(z, 'QT', data_slice, output_file)
+        print(f"  Saved {output_file}")
+
     print(f"  Saved {nc_output}")
 
 
@@ -418,6 +436,23 @@ def plot_profiles_SAM_DYCOMS():
             plot_profile(z, var, data_slice, output_file)
             print(f"  Saved {output_file}")
 
+    # Calculate and save QT (sum of moisture variables)
+    print("  Computing QT (QV + QN)...", end=' ')
+    data_qv, (x, y, z) = load_data.load_SAM_DYCOMS('QV')
+    data_qn, _ = load_data.load_SAM_DYCOMS('QN')
+    data_qt = data_qv + data_qn
+    print("done")
+
+    # Save QT to netCDF
+    save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+    # Plot QT
+    for t_idx in range(data_qt.shape[3]):
+        data_slice = data_qt[:, :, :, t_idx]
+        output_file = output_dir / f"SAM_DYCOMS_t{t_idx}_QT.png"
+        plot_profile(z, 'QT', data_slice, output_file)
+        print(f"  Saved {output_file}")
+
     print(f"  Saved {nc_output}")
 
 
@@ -428,7 +463,6 @@ def plot_profiles_SAM_TWPICE():
     output_dir = Path("profiles")
     output_dir.mkdir(exist_ok=True)
 
-    timestep = 150
     variables = ['QV', 'QC', 'QI', 'TABS', 'W', 'U']
 
     # NetCDF output file
@@ -444,9 +478,26 @@ def plot_profiles_SAM_TWPICE():
 
         # Extract single timestep from shape (nx, ny, nz, 1)
         data_slice = data[:, :, :, 0]
-        output_file = output_dir / f"SAM_TWPICE_t{timestep}_{var}.png"
+        output_file = output_dir / f"SAM_TWPICE_t0_{var}.png"
         plot_profile(z, var, data_slice, output_file)
         print(f"  Saved {output_file}")
+
+    # Calculate and save QT (sum of moisture variables)
+    print("  Computing QT (QV + QC + QI)...", end=' ')
+    data_qv, (x, y, z) = load_data.load_SAM_TWPICE('QV', single_timestep=True)
+    data_qc, _ = load_data.load_SAM_TWPICE('QC', single_timestep=True)
+    data_qi, _ = load_data.load_SAM_TWPICE('QI', single_timestep=True)
+    data_qt = data_qv + data_qc + data_qi
+    print("done")
+
+    # Save QT to netCDF
+    save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+    # Plot QT
+    data_slice = data_qt[:, :, :, 0]
+    output_file = output_dir / f"SAM_TWPICE_t0_QT.png"
+    plot_profile(z, 'QT', data_slice, output_file)
+    print(f"  Saved {output_file}")
 
     print(f"  Saved {nc_output}")
 
@@ -477,6 +528,23 @@ def plot_profiles_SAM_RCEMIP():
             plot_profile(z, var, data_slice, output_file)
             print(f"  Saved {output_file}")
 
+    # Calculate and save QT (sum of moisture variables)
+    print("  Computing QT (QV + QN)...", end=' ')
+    data_qv, (x, y, z) = load_data.load_SAM_RCEMIP('QV')
+    data_qn, _ = load_data.load_SAM_RCEMIP('QN')
+    data_qt = data_qv + data_qn
+    print("done")
+
+    # Save QT to netCDF
+    save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+    # Plot QT
+    for t_idx in range(data_qt.shape[3]):
+        data_slice = data_qt[:, :, :, t_idx]
+        output_file = output_dir / f"SAM_RCEMIP_t{t_idx}_QT.png"
+        plot_profile(z, 'QT', data_slice, output_file)
+        print(f"  Saved {output_file}")
+
     print(f"  Saved {nc_output}")
 
 
@@ -505,6 +573,24 @@ def plot_profiles_CM1_RCEMIP():
             output_file = output_dir / f"CM1_RCEMIP_t{t_idx}_{var}.png"
             plot_profile(z, label, data_slice, output_file)
             print(f"  Saved {output_file}")
+
+    # Calculate and save QT (sum of moisture variables: hus + clw + cli)
+    print("  Computing QT (hus + clw + cli)...", end=' ')
+    data_qv, (x, y, z) = load_data.load_CM1_RCEMIP('hus')
+    data_clw, _ = load_data.load_CM1_RCEMIP('clw')
+    data_cli, _ = load_data.load_CM1_RCEMIP('cli')
+    data_qt = data_qv + data_clw + data_cli
+    print("done")
+
+    # Save QT to netCDF
+    save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+    # Plot QT
+    for t_idx in range(data_qt.shape[3]):
+        data_slice = data_qt[:, :, :, t_idx]
+        output_file = output_dir / f"CM1_RCEMIP_t{t_idx}_QT.png"
+        plot_profile(z, 'QT (hus+clw+cli)', data_slice, output_file)
+        print(f"  Saved {output_file}")
 
     print(f"  Saved {nc_output}")
 
