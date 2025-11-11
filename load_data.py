@@ -18,7 +18,8 @@ def load_SAM_COMBLE(variable, single_timestep=False):
     Parameters
     ----------
     variable : str
-        Variable name: 'QV', 'QC', 'QI', 'TABS', 'W', 'U'
+        Variable name: 'QV', 'QN', 'QI', 'TABS', 'W', 'U'
+        Note: QN is total non-precipitating condensate (liquid + ice)
     single_timestep : bool
         If True, return only first timestep with shape (nx, ny, nz, 1)
         If False, stack all timesteps to shape (nx, ny, nz, nt)
@@ -32,8 +33,8 @@ def load_SAM_COMBLE(variable, single_timestep=False):
     """
     base_path = "/Volumes/BLUE/COMBLE/SHEBA_Init_dSST_6p5_grid_100m_Tlength_15hr/OUT_3D"
     files = [
-        "RCELAND_640x640x110_comble_16_0000003600.nc",
-        "RCELAND_640x640x110_comble_16_0000005400.nc",
+        # "RCELAND_640x640x110_comble_16_0000003600.nc",
+        # "RCELAND_640x640x110_comble_16_0000005400.nc",
         "RCELAND_640x640x110_comble_16_0000007200.nc",
     ]
 
@@ -99,8 +100,8 @@ def load_SAM_DYCOMS(variable, single_timestep=False):
     file_patterns = var_to_files[variable]
     timesteps = [
         "0000043200",
-        "0000050400",
-        "0000057600",
+        # "0000050400",
+        # "0000057600",
     ]
 
     data_list = []
@@ -155,8 +156,8 @@ def load_SAM_TWPICE(variable, single_timestep=False):
 
     timesteps = [
         "0000000150",
-        "0000001800",
-        "0000003450",
+        # "0000001800",
+        # "0000003450",
     ]
 
     data_list = []
@@ -205,9 +206,9 @@ def load_SAM_RCEMIP(variable, single_timestep=False):
     """
     base_path = "/Volumes/BLUE/RCEMIP/SAM_CRM/RCE_small_les300/3D"
     files = [
-        "RCEMIP_SST300_480x480x146-200m-2s_480_0000086400.nc",
-        "RCEMIP_SST300_480x480x146-200m-2s_480_0000777600.nc",
-        "RCEMIP_SST300_480x480x146-200m-2s_480_0001468800.nc",
+        "RCEMIP_SST300_480x480x146-200m-2s_480_0001512000.nc",
+        "RCEMIP_SST300_480x480x146-200m-2s_480_0001728000.nc",
+        "RCEMIP_SST300_480x480x146-200m-2s_480_0001944000.nc",
         "RCEMIP_SST300_480x480x146-200m-2s_480_0002160000.nc",
     ]
 
@@ -242,12 +243,13 @@ def load_CM1_RCEMIP(variable, single_timestep=False):
     Parameters
     ----------
     variable : str
-        Variable name: 'clw', 'cli', 'ta', 'wa', 'ua'
+        Variable name: 'clw', 'cli', 'ta', 'wa', 'ua', 'hus'
         - clw: cloud liquid water
         - cli: cloud ice
         - ta: air temperature
         - wa: vertical velocity
         - ua: eastward wind
+        - hus: specific humidity (water vapor)
     single_timestep : bool
         If True, return only first timestep with shape (nx, ny, nz, 1)
         If False, stack all timesteps to shape (nx, ny, nz, nt)
@@ -261,9 +263,9 @@ def load_CM1_RCEMIP(variable, single_timestep=False):
     """
     base_path = "/Volumes/BLUE/RCEMIP/CM1/RCE_small_les300/3D"
     files = [
-        "CM1_RCE_small_les300_3D_allvars_hour0000.nc",
-        "CM1_RCE_small_les300_3D_allvars_hour0408.nc",
-        "CM1_RCE_small_les300_3D_allvars_hour0816.nc",
+        "CM1_RCE_small_les300_3D_allvars_hour0840.nc",
+        "CM1_RCE_small_les300_3D_allvars_hour0960.nc",
+        "CM1_RCE_small_les300_3D_allvars_hour1080.nc",
         "CM1_RCE_small_les300_3D_allvars_hour1200.nc",
     ]
 

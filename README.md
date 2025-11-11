@@ -19,7 +19,7 @@ Available simulations:
   - `RCELAND_640x640x110_comble_16_0000003600.nc`
   - `RCELAND_640x640x110_comble_16_0000005400.nc`
   - `RCELAND_640x640x110_comble_16_0000007200.nc`
-- **Available Variables**: QV, QC, QI, TABS, W, U
+- **Available Variables**: QV, QN (total condensate), QI, TABS, W, U
 - **Dimensions**: (nx=640, ny=640, nz=110)
 - **Function**: `load_SAM_COMBLE(variable, single_timestep=False)`
 
@@ -120,6 +120,12 @@ This will process all five datasets and save visualizations to `optical_depth_im
 - Data arrays are converted to float32 for memory efficiency
 - Grid spacing (dx) is calculated from coordinate arrays as `dx = x[1] - x[0]`
 - Some datasets have combined condensate variables (QN) rather than separate liquid (QC) and ice (QI)
+- **Unit normalization**: Water/ice variables are normalized to g/kg across all datasets:
+  - SAM/COMBLE: QN, QI in g/kg (no conversion)
+  - SAM/DYCOMS: QN in g/kg (no conversion)
+  - SAM/TWPICE: QC, QI in g/kg (no conversion)
+  - SAM/RCEMIP: QN in g/kg (no conversion)
+  - CM1/RCEMIP: clw, cli in g/g → multiplied by 1000
 
 ## Requirements
 
