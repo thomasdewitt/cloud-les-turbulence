@@ -15,7 +15,7 @@ import netCDF4 as nc
 import load_data
 
 
-def calculate_optical_depth(data_qc, data_qi, heights, dx):
+def calculate_optical_depth(data_qc, data_qi, heights, dz):
     """
     Calculate optical depth from cloud water and ice content.
 
@@ -27,8 +27,8 @@ def calculate_optical_depth(data_qc, data_qi, heights, dx):
         Cloud ice content (g/kg), shape (nx, ny, nz, nt)
     heights : np.ndarray
         Height levels (m)
-    dx : float
-        Grid spacing (m)
+    dz : float
+        Vertical layer thickness (m)
 
     Returns
     -------
@@ -36,6 +36,10 @@ def calculate_optical_depth(data_qc, data_qi, heights, dx):
         Optical depth, shape (nx, ny, nt)
     """
     nx, ny, nz, nt = data_qc.shape
+
+    # Replace NaNs with 0 (no cloud/water/ice)
+    data_qc = np.nan_to_num(data_qc, nan=0.0)
+    data_qi = np.nan_to_num(data_qi, nan=0.0)
 
     # Physical constants
     g = 9.81
@@ -54,7 +58,7 @@ def calculate_optical_depth(data_qc, data_qi, heights, dx):
 
     # Calculate water path at each grid point and level
     # densities shape needs to be broadcast: (1, 1, nz, 1)
-    water_path = densities[np.newaxis, np.newaxis, :, np.newaxis] * total_condensate * dx
+    water_path = densities[np.newaxis, np.newaxis, :, np.newaxis] * total_condensate * dz
 
     # Effective radius assumptions
     re_liquid = 10  # micrometers
@@ -252,9 +256,9 @@ def process_SAM_COMBLE():
     data_qn, (x, y, z) = load_data.load_SAM_COMBLE('QN')
     data_qi, _ = load_data.load_SAM_COMBLE('QI')
 
-    dx = x[1] - x[0]
+    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
     # For optical depth, we'll use the total condensate QN
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dx)
+    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
     opacity = calculate_opacity(optical_depth)
 
     output_dir = Path("optical_depth_images")
@@ -276,8 +280,8 @@ def process_SAM_DYCOMS():
     data_qn, (x, y, z) = load_data.load_SAM_DYCOMS('QN')
 
     # Treat QN as all liquid for optical depth calculation
-    dx = x[1] - x[0]
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dx)
+    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
+    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
     opacity = calculate_opacity(optical_depth)
 
     output_dir = Path("optical_depth_images")
@@ -303,8 +307,8 @@ def process_SAM_TWPICE():
         data_qc, (x, y, z) = load_data.load_SAM_TWPICE('QC', single_timestep=True)
         data_qi, _ = load_data.load_SAM_TWPICE('QI', single_timestep=True)
 
-        dx = x[1] - x[0]
-        optical_depth = calculate_optical_depth(data_qc, data_qi, z, dx)
+        dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
+        optical_depth = calculate_optical_depth(data_qc, data_qi, z, dz)
         opacity = calculate_opacity(optical_depth)
 
         opacity_2d = opacity[:, :, 0]
@@ -320,8 +324,8 @@ def process_SAM_RCEMIP():
     # RCEMIP only has QN (total condensate), no separate QC and QI
     data_qn, (x, y, z) = load_data.load_SAM_RCEMIP('QN')
 
-    dx = x[1] - x[0]
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dx)
+    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
+    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
     opacity = calculate_opacity(optical_depth)
 
     output_dir = Path("optical_depth_images")
@@ -346,8 +350,8 @@ def process_CM1_RCEMIP():
     data_qc = data_clw * 1000
     data_qi = data_cli * 1000
 
-    dx = x[1] - x[0]
-    optical_depth = calculate_optical_depth(data_qc, data_qi, z, dx)
+    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
+    optical_depth = calculate_optical_depth(data_qc, data_qi, z, dz)
     opacity = calculate_opacity(optical_depth)
 
     output_dir = Path("optical_depth_images")
@@ -595,17 +599,95 @@ def plot_profiles_CM1_RCEMIP():
     print(f"  Saved {nc_output}")
 
 
+def process_HRRR():
+    """Process HRRR dataset for optical depth."""
+    print("Processing HRRR...")
+
+    # HRRR has clwmr (cloud water mixing ratio) and snmr (snow/ice mixing ratio)
+    data_clwmr, (x, y, z) = load_data.load_HRRR('clwmr', single_timestep=True)
+    data_snmr, _ = load_data.load_HRRR('snmr', single_timestep=True)
+
+    # Combine cloud liquid and ice (snow)
+    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
+    optical_depth = calculate_optical_depth(data_clwmr, data_snmr, z, dz)
+    opacity = calculate_opacity(optical_depth)
+
+    output_dir = Path("optical_depth_images")
+    output_dir.mkdir(exist_ok=True)
+
+    # Process single timestep
+    opacity_2d = opacity[:, :, 0]
+    output_file = output_dir / "HRRR_t0.png"
+    create_opacity_image(opacity_2d, output_file)
+    print(f"  Saved {output_file}")
+
+
+def plot_profiles_HRRR():
+    """Plot vertical profiles for HRRR dataset (single timestep)."""
+    print("Plotting profiles: HRRR...")
+
+    output_dir = Path("profiles")
+    output_dir.mkdir(exist_ok=True)
+
+    # Variables available on isobaric levels
+    variables = ['t', 'q', 'clwmr', 'u', 'w']
+
+    # NetCDF output file
+    nc_output = output_dir / "HRRR_profiles.nc"
+    if nc_output.exists():
+        nc_output.unlink()  # Remove if exists to start fresh
+
+    for var in variables:
+        try:
+            data, (x, y, z) = load_data.load_HRRR(var, single_timestep=True)
+
+            # Save profile statistics to netCDF
+            save_profile_data_to_netcdf(z, var, data, nc_output)
+
+            # Process single timestep
+            data_slice = data[:, :, :, 0]
+            output_file = output_dir / f"HRRR_t0_{var}.png"
+            plot_profile(z, var, data_slice, output_file)
+            print(f"  Saved {output_file}")
+        except ValueError as e:
+            print(f"  Warning: Could not load {var}: {e}")
+            continue
+
+    # Calculate and save total water (q + clwmr + snmr)
+    print("  Computing QT (q + clwmr + snmr)...", end=' ')
+    try:
+        data_q, (x, y, z) = load_data.load_HRRR('q', single_timestep=True)
+        data_clwmr, _ = load_data.load_HRRR('clwmr', single_timestep=True)
+        data_snmr, _ = load_data.load_HRRR('snmr', single_timestep=True)
+        data_qt = data_q + data_clwmr + data_snmr
+        print("done")
+
+        # Save QT to netCDF
+        save_profile_data_to_netcdf(z, 'QT', data_qt, nc_output)
+
+        # Plot QT
+        data_slice = data_qt[:, :, :, 0]
+        output_file = output_dir / "HRRR_t0_QT.png"
+        plot_profile(z, 'QT', data_slice, output_file)
+        print(f"  Saved {output_file}")
+    except Exception as e:
+        print(f"Could not compute QT: {e}")
+
+    print(f"  Saved {nc_output}")
+
+
 def main():
     """Process all datasets and create optical depth visualizations and profiles."""
     print("=" * 60)
     print("Processing LES datasets for optical depth visualization")
     print("=" * 60)
 
-    process_SAM_COMBLE()
-    process_SAM_DYCOMS()
-    process_SAM_RCEMIP()
-    process_CM1_RCEMIP()
-    process_SAM_TWPICE()
+    # process_SAM_COMBLE()
+    # process_SAM_DYCOMS()
+    # process_SAM_RCEMIP()
+    # process_CM1_RCEMIP()
+    # process_SAM_TWPICE()
+    # process_HRRR()
 
     print("=" * 60)
     print("Plotting vertical profiles")
@@ -613,9 +695,10 @@ def main():
 
     plot_profiles_SAM_COMBLE()
     plot_profiles_SAM_DYCOMS()
-    plot_profiles_SAM_TWPICE()
+    # plot_profiles_SAM_TWPICE()
     plot_profiles_SAM_RCEMIP()
     plot_profiles_CM1_RCEMIP()
+    plot_profiles_HRRR()
 
     print("=" * 60)
     print("All visualizations complete!")
