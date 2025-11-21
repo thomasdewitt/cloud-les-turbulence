@@ -17,7 +17,7 @@ import load_data
 
 # Altitude ranges for each dataset (meters)
 ALTITUDE_RANGES = {
-    'SAM_COMBLE': (200, 1200),
+    'SAM_COMBLE': (2000, 4000),
     'SAM_DYCOMS': (10, 900),
     'SAM_TWPICE': (5000, 10000),
     'SAM_RCEMIP': (5000, 10000),
@@ -29,12 +29,12 @@ ALTITUDE_RANGES = {
 
 # Variables to compute for each dataset
 DATASET_VARIABLES = {
-    # 'SAM_COMBLE': {
-    #     'U': 'U',
-    #     'W': 'W',
-    #     'QV': 'QV',
-    #     'QT': ['QV', 'QN', 'QI']
-    # },
+    'SAM_COMBLE': {
+        'U': 'U',
+        'W': 'W',
+        'QV': 'QV',
+        'QT': ['QV', 'QN', 'QI']
+    },
     # 'SAM_DYCOMS': {
     #     'U': 'U',
     #     'W': 'W',
@@ -71,12 +71,12 @@ DATASET_VARIABLES = {
     #     'QV': 'hus',  # hus = specific humidity (water vapor)
     #     'QT': ['hus', 'clw', 'cli']
     # },
-    'HRRR': {
-        'U': 'u',  # u = eastward wind component
-        'W': 'w',  # w = vertical velocity
-        'QV': 'q',  # q = specific humidity (water vapor)
-        'QT': ['q', 'clwmr']  # q + cloud water mixing ratio
-    },
+    # 'HRRR': {
+    #     'U': 'u',  # u = eastward wind component
+    #     'W': 'w',  # w = vertical velocity
+    #     'QV': 'q',  # q = specific humidity (water vapor)
+    #     'QT': ['q', 'clwmr']  # q + cloud water mixing ratio
+    # },
 }
 
 STRUCTURE_FUNCTION_ORDER = 2

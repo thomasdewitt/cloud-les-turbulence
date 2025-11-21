@@ -1,101 +1,15 @@
 """
-Plot optical depth for LES cloud datasets.
+Plot vertical profiles for LES cloud datasets.
 
-Loads each timestep of each simulation, calculates optical depth from cloud water and ice,
-and saves visualizations to optical_depth_images/ directory.
-
-Also generates vertical profiles showing mean and ±1std for all variables.
+Generates vertical profiles showing mean and ±1std for all variables.
+Saves both PNG visualizations and netCDF files with profile statistics.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
 from pathlib import Path
 import netCDF4 as nc
 import load_data
-
-
-def calculate_optical_depth(data_qc, data_qi, heights, dz):
-    """
-    Calculate optical depth from cloud water and ice content.
-
-    Parameters
-    ----------
-    data_qc : np.ndarray
-        Cloud liquid water content (g/kg), shape (nx, ny, nz, nt)
-    data_qi : np.ndarray
-        Cloud ice content (g/kg), shape (nx, ny, nz, nt)
-    heights : np.ndarray
-        Height levels (m)
-    dz : float
-        Vertical layer thickness (m)
-
-    Returns
-    -------
-    optical_depth : np.ndarray
-        Optical depth, shape (nx, ny, nt)
-    """
-    nx, ny, nz, nt = data_qc.shape
-
-    # Replace NaNs with 0 (no cloud/water/ice)
-    data_qc = np.nan_to_num(data_qc, nan=0.0)
-    data_qi = np.nan_to_num(data_qi, nan=0.0)
-
-    # Physical constants
-    g = 9.81
-    R = 287.05
-    assumed_T = 290
-    scale_height = 7000
-    p0 = 1013
-
-    # Calculate pressure and density at each level
-    pressures = p0 * np.exp(-heights / scale_height)  # (nz,)
-    densities = (pressures * 100) / (R * assumed_T)  # (nz,)
-
-    # Total condensate (combine QC and QI)
-    # Shape: (nx, ny, nz, nt)
-    total_condensate = data_qc + data_qi
-
-    # Calculate water path at each grid point and level
-    # densities shape needs to be broadcast: (1, 1, nz, 1)
-    water_path = densities[np.newaxis, np.newaxis, :, np.newaxis] * total_condensate * dz
-
-    # Effective radius assumptions
-    re_liquid = 10  # micrometers
-    re_ice = 30    # micrometers
-
-    # Optical depth relationships
-    # For liquid: LWP = 0.6292 * tau * re
-    # For ice: use similar relationship
-    fac_liquid = 1 / (0.6292 * re_liquid)
-    fac_ice = 1 / (0.6292 * re_ice)
-
-    # Calculate optical depths
-    # Simple approach: use single effective radius for total condensate
-    fac = fac_liquid  # Use liquid water effective radius
-    optical_depth_levels = fac * water_path
-
-    # Integrate over vertical dimension (sum along z-axis)
-    optical_depth = optical_depth_levels.sum(axis=2)  # (nx, ny, nt)
-
-    return optical_depth
-
-
-def calculate_opacity(optical_depth):
-    """
-    Convert optical depth to opacity (0 to 1).
-
-    Parameters
-    ----------
-    optical_depth : np.ndarray
-        Optical depth
-
-    Returns
-    -------
-    opacity : np.ndarray
-        Opacity values (0 to 1)
-    """
-    return 1 - np.exp(-optical_depth)
 
 
 def plot_profile(z, variable_name, data_slice, output_file, figsize=(8, 6)):
@@ -212,157 +126,6 @@ def save_profile_data_to_netcdf(z, variable_name, data, output_file):
         ds.variables[f'{variable_name}_normalized_log_std'][:] = normalized_log_std
 
     ds.close()
-
-
-def create_opacity_image(opacity, output_file, figsize=(8, 8)):
-    """
-    Create and save an opacity visualization.
-
-    Parameters
-    ----------
-    opacity : np.ndarray
-        Opacity array, shape (nx, ny)
-    output_file : str or Path
-        Output file path
-    figsize : tuple
-        Figure size
-    """
-    # Create custom colormap: blue (sky) to white (opaque cloud)
-    sky_blue = '#3A4AA6'
-    colors = [sky_blue, 'white']
-    n_bins = 256
-    cmap = LinearSegmentedColormap.from_list('sky_to_cloud', colors, N=n_bins)
-
-    # Create figure without axes
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.imshow(opacity.T, origin='lower', cmap=cmap, vmin=0, vmax=1,
-              interpolation='nearest')
-
-    # Remove all axes, ticks, labels
-    ax.axis('off')
-    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-
-    # Save with no padding
-    plt.savefig(output_file, dpi=150, bbox_inches='tight', pad_inches=0)
-    plt.close()
-
-
-def process_SAM_COMBLE():
-    """Process SAM COMBLE dataset."""
-    print("Processing SAM_COMBLE...")
-
-    # COMBLE has QN (total condensate) and QI (ice)
-    # Use QN as liquid+ice and QI separately for better optical depth estimate
-    data_qn, (x, y, z) = load_data.load_SAM_COMBLE('QN')
-    data_qi, _ = load_data.load_SAM_COMBLE('QI')
-
-    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-    # For optical depth, we'll use the total condensate QN
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
-    opacity = calculate_opacity(optical_depth)
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    # Process all available timesteps
-    for t_idx in range(opacity.shape[2]):
-        opacity_2d = opacity[:, :, t_idx]
-        output_file = output_dir / f"SAM_COMBLE_t{t_idx}.png"
-        create_opacity_image(opacity_2d, output_file)
-        print(f"  Saved {output_file}")
-
-
-def process_SAM_DYCOMS():
-    """Process SAM DYCOMS dataset."""
-    print("Processing SAM_DYCOMS...")
-
-    # DYCOMS only has QN (total condensate), no separate QC and QI
-    data_qn, (x, y, z) = load_data.load_SAM_DYCOMS('QN')
-
-    # Treat QN as all liquid for optical depth calculation
-    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
-    opacity = calculate_opacity(optical_depth)
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    # Process all available timesteps
-    for t_idx in range(opacity.shape[2]):
-        opacity_2d = opacity[:, :, t_idx]
-        output_file = output_dir / f"SAM_DYCOMS_t{t_idx}.png"
-        create_opacity_image(opacity_2d, output_file)
-        print(f"  Saved {output_file}")
-
-
-def process_SAM_TWPICE():
-    """Process SAM TWPICE dataset."""
-    print("Processing SAM_TWPICE...")
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    timesteps = [150, 1800, 3450]
-    for timestep in timesteps:
-        data_qc, (x, y, z) = load_data.load_SAM_TWPICE('QC', single_timestep=True)
-        data_qi, _ = load_data.load_SAM_TWPICE('QI', single_timestep=True)
-
-        dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-        optical_depth = calculate_optical_depth(data_qc, data_qi, z, dz)
-        opacity = calculate_opacity(optical_depth)
-
-        opacity_2d = opacity[:, :, 0]
-        output_file = output_dir / f"SAM_TWPICE_t{timestep}.png"
-        create_opacity_image(opacity_2d, output_file)
-        print(f"  Saved {output_file}")
-
-
-def process_SAM_RCEMIP():
-    """Process SAM RCEMIP dataset."""
-    print("Processing SAM_RCEMIP...")
-
-    # RCEMIP only has QN (total condensate), no separate QC and QI
-    data_qn, (x, y, z) = load_data.load_SAM_RCEMIP('QN')
-
-    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-    optical_depth = calculate_optical_depth(data_qn, np.zeros_like(data_qn), z, dz)
-    opacity = calculate_opacity(optical_depth)
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    # Handle variable number of timesteps
-    for t_idx in range(opacity.shape[2]):
-        opacity_2d = opacity[:, :, t_idx]
-        output_file = output_dir / f"SAM_RCEMIP_t{t_idx}.png"
-        create_opacity_image(opacity_2d, output_file)
-        print(f"  Saved {output_file}")
-
-
-def process_CM1_RCEMIP():
-    """Process CM1 RCEMIP dataset."""
-    print("Processing CM1_RCEMIP...")
-
-    data_clw, (x, y, z) = load_data.load_CM1_RCEMIP('clw')
-    data_cli, _ = load_data.load_CM1_RCEMIP('cli')
-
-    # Convert from g/g to g/kg for consistency
-    data_qc = data_clw * 1000
-    data_qi = data_cli * 1000
-
-    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-    optical_depth = calculate_optical_depth(data_qc, data_qi, z, dz)
-    opacity = calculate_opacity(optical_depth)
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    # Handle variable number of timesteps
-    for t_idx in range(opacity.shape[2]):
-        opacity_2d = opacity[:, :, t_idx]
-        output_file = output_dir / f"CM1_RCEMIP_t{t_idx}.png"
-        create_opacity_image(opacity_2d, output_file)
-        print(f"  Saved {output_file}")
 
 
 def plot_profiles_SAM_COMBLE():
@@ -599,29 +362,6 @@ def plot_profiles_CM1_RCEMIP():
     print(f"  Saved {nc_output}")
 
 
-def process_HRRR():
-    """Process HRRR dataset for optical depth."""
-    print("Processing HRRR...")
-
-    # HRRR has clwmr (cloud water mixing ratio) and snmr (snow/ice mixing ratio)
-    data_clwmr, (x, y, z) = load_data.load_HRRR('clwmr', single_timestep=True)
-    data_snmr, _ = load_data.load_HRRR('snmr', single_timestep=True)
-
-    # Combine cloud liquid and ice (snow)
-    dz = np.mean(np.diff(z)) if len(z) > 1 else 1.0
-    optical_depth = calculate_optical_depth(data_clwmr, data_snmr, z, dz)
-    opacity = calculate_opacity(optical_depth)
-
-    output_dir = Path("optical_depth_images")
-    output_dir.mkdir(exist_ok=True)
-
-    # Process single timestep
-    opacity_2d = opacity[:, :, 0]
-    output_file = output_dir / "HRRR_t0.png"
-    create_opacity_image(opacity_2d, output_file)
-    print(f"  Saved {output_file}")
-
-
 def plot_profiles_HRRR():
     """Plot vertical profiles for HRRR dataset (single timestep)."""
     print("Plotting profiles: HRRR...")
@@ -677,20 +417,9 @@ def plot_profiles_HRRR():
 
 
 def main():
-    """Process all datasets and create optical depth visualizations and profiles."""
+    """Process all datasets and create vertical profile visualizations."""
     print("=" * 60)
-    print("Processing LES datasets for optical depth visualization")
-    print("=" * 60)
-
-    # process_SAM_COMBLE()
-    # process_SAM_DYCOMS()
-    # process_SAM_RCEMIP()
-    # process_CM1_RCEMIP()
-    # process_SAM_TWPICE()
-    # process_HRRR()
-
-    print("=" * 60)
-    print("Plotting vertical profiles")
+    print("Plotting vertical profiles for LES datasets")
     print("=" * 60)
 
     plot_profiles_SAM_COMBLE()
@@ -701,7 +430,7 @@ def main():
     plot_profiles_HRRR()
 
     print("=" * 60)
-    print("All visualizations complete!")
+    print("All profile visualizations complete!")
     print("=" * 60)
 
 
