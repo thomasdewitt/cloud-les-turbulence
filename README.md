@@ -51,9 +51,9 @@ Available simulations:
 
 - **Base Path**: `/Volumes/BLUE/RCEMIP/SAM_CRM/RCE_small_les300/3D/`
 - **Files**:
-  - `RCEMIP_SST300_480x480x146-200m-2s_480_0000086400.nc`
-  - `RCEMIP_SST300_480x480x146-200m-2s_480_0000777600.nc`
-  - `RCEMIP_SST300_480x480x146-200m-2s_480_0001468800.nc`
+  - `RCEMIP_SST300_480x480x146-200m-2s_480_0001512000.nc`
+  - `RCEMIP_SST300_480x480x146-200m-2s_480_0001728000.nc`
+  - `RCEMIP_SST300_480x480x146-200m-2s_480_0001944000.nc`
   - `RCEMIP_SST300_480x480x146-200m-2s_480_0002160000.nc`
 - **Available Variables**: QV, QN (total condensate), TABS, W, U
 - **Dimensions**: (nx=480, ny=480, nz=146)
@@ -63,55 +63,174 @@ Available simulations:
 
 - **Base Path**: `/Volumes/BLUE/RCEMIP/CM1/RCE_small_les300/3D/`
 - **Files**:
-  - `CM1_RCE_small_les300_3D_allvars_hour0000.nc`
-  - `CM1_RCE_small_les300_3D_allvars_hour0408.nc`
-  - `CM1_RCE_small_les300_3D_allvars_hour0816.nc`
+  - `CM1_RCE_small_les300_3D_allvars_hour0840.nc`
+  - `CM1_RCE_small_les300_3D_allvars_hour0960.nc`
+  - `CM1_RCE_small_les300_3D_allvars_hour1080.nc`
   - `CM1_RCE_small_les300_3D_allvars_hour1200.nc`
-- **Available Variables**: clw (cloud liquid water), cli (cloud ice), ta (temperature), wa (vertical velocity), ua (eastward wind)
+- **Available Variables**: clw (cloud liquid water), cli (cloud ice), ta (temperature), wa (vertical velocity), ua (eastward wind), hus (specific humidity)
 - **Dimensions**: (ni=540, nj=540, nk=146)
-- **Note**: Variables use different naming convention (CF compliant). clw and cli are in g/g, converted to g/kg by plotting script.
+- **Note**: Variables use different naming convention (CF compliant). clw, cli, and hus are in g/g, converted to g/kg by load function (×1000).
 - **Function**: `load_CM1_RCEMIP(variable, single_timestep=False)`
 
-### plot_optical_depth.py
+#### SAM_RCEMIP_large
 
-Simple script that loads each timestep of each simulation, calculates optical depth from cloud water and ice content, and plots/saves visualizations to `optical_depth_images/` directory.
+- **Base Path**: `/Volumes/BLUE/RCEMIP/SAM_CRM/RCE_large300/3D/`
+- **Files**:
+  - `SAM_CRM_RCE_large300_3D_0000660600.nc`
+  - `SAM_CRM_RCE_large300_3D_0000680400.nc`
+  - `SAM_CRM_RCE_large300_3D_0000700200.nc`
+  - `SAM_CRM_RCE_large300_3D_0000720000.nc`
+- **Available Variables**: QV, ta, ua, va, wa, clw, cli, plw, pli, hus, hur
+  - QV: water vapor mixing ratio
+  - ta: air temperature
+  - ua, va, wa: eastward, northward, vertical wind components
+  - clw, cli: cloud liquid water, cloud ice
+  - plw, pli: precipitating liquid water, precipitating ice
+  - hus: specific humidity
+  - hur: relative humidity
+- **Dimensions**: (nx=1536, ny=1536, nz=146) [3km domain]
+- **Function**: `load_SAM_RCEMIP_large(variable, single_timestep=False)`
 
-#### Calculation Details
+#### CM1_RCEMIP_large
 
-- **Water Path**: Calculated using air density at each level, water content, and grid spacing
-- **Optical Depth**: Related to water path via `LWP = 0.6292 * tau * re`, where re is effective radius
-  - Liquid water: re = 10 μm
-  - Cloud ice: re = 30 μm (not currently differentiated in optical depth calc)
-- **Opacity**: Converted from optical depth via `opacity = 1 - exp(-tau)`
-- **Visualization**: Blue-to-white colormap where blue = clear sky, white = opaque cloud
+- **Base Path**: `/Volumes/BLUE/RCEMIP/CM1/RCE_large300/3D/`
+- **Files**:
+  - `CM1_RCE_large300_3D_allvars_hour1860.nc`
+  - `CM1_RCE_large300_3D_allvars_hour2040.nc`
+  - `CM1_RCE_large300_3D_allvars_hour2220.nc`
+  - `CM1_RCE_large300_3D_allvars_hour2400.nc`
+- **Available Variables**: clw, cli, plw, pli, ta, ua, va, wa, pa, hus, hur, tntr, tntrs, tntrl
+  - clw, cli: cloud liquid water, cloud ice
+  - plw, pli: precipitating liquid water, precipitating ice
+  - ta: air temperature
+  - ua, va, wa: eastward, northward, vertical wind components
+  - pa: pressure
+  - hus: specific humidity
+  - hur: relative humidity
+  - tntr, tntrs, tntrl: total, shortwave, longwave radiative heating rates
+- **Dimensions**: (ni=1620, nj=1620, nk=146) [3km domain]
+- **Function**: `load_CM1_RCEMIP_large(variable, single_timestep=False)`
+
+#### HRRR
+
+- **Base Path**: `/Volumes/BLUE/HRRR/`
+- **File Pattern**: `YYYYMMDD/tHHz/*_wrfprsf_f{00|48}_valid_*.grib2`
+- **Available Variables**: t, u, v, gh, q, dpt, clwmr, rwmr, snmr, w, r
+  - t: temperature
+  - u, v, w: eastward, northward, vertical wind components
+  - gh: geopotential height
+  - q: specific humidity (water vapor)
+  - dpt: dew point
+  - clwmr: cloud water mixing ratio
+  - rwmr: rain water mixing ratio
+  - snmr: snow water mixing ratio
+  - r: relative humidity
+- **Dimensions**: Variable (nx, ny, nz_interpolated, nt) - interpolated to uniform height grid
+- **Notes**:
+  - Loads isobaric level data and interpolates to uniform height grid
+  - Supports forecast hour selection (f00=analysis, f48=48-hour forecast)
+  - Supports seasonal filtering ('summer'=Jun-Aug, 'fall'=Sep-Nov)
+  - Water variables (q, clwmr, snmr, rwmr) converted from kg/kg to g/kg (×1000)
+- **Function**: `load_HRRR(variable, single_timestep=False, load_forecast=False, season=None)`
+
+### compute_scaling_functions.py
+
+Computes scaling functions (structure functions and power spectral densities) for LES datasets.
+
+#### Process
+
+For each dataset and variable (U, W, QV, QT where QT = QV+QC+QI or QV+QN):
+- Loads data within specified altitude range for each dataset
+- Calculates order-2 structure functions in vertical and horizontal directions
+- Calculates power spectral densities in vertical and horizontal directions
+- Saves all results to `scaling_functions/scaling_functions_all_datasets.nc`
+
+#### Altitude Ranges
+
+- SAM_COMBLE: 2000-4000m
+- SAM_DYCOMS: 650-850m
+- SAM_TWPICE: 5000-10000m
+- SAM_RCEMIP: 5000-10000m
+- SAM_RCEMIP_large: 5000-10000m
+- CM1_RCEMIP: 5000-10000m
+- CM1_RCEMIP_large: 5000-10000m
+- HRRR: 2000-4000m
 
 #### Output
 
-Images are saved as `{DATASET}_{IDENTIFIER}.png` in `optical_depth_images/` directory with dimensions matching input grid.
+- NetCDF file: `scaling_functions/scaling_functions_all_datasets.nc`
+- Contains groups for each dataset with structure functions and spectra for each variable
+
+### plot_scaling_functions.py
+
+Creates visualization plots from the scaling functions netCDF file.
+
+#### Output
+
+For each dataset and variable, creates a 2-panel figure:
+- **Left panel**: Vertical and horizontal structure functions on log-log plot with fitted Hurst exponents
+- **Right panel**: Vertical and horizontal power spectral densities on log-log plot with reference slopes
+
+Includes reference lines with theoretical slopes:
+- General variables: horizontal spectral slope -5/3, vertical spectral slope -11/5
+- W variable: horizontal spectral slope -7/9, vertical spectral slope -3/5
+
+Figures saved to `scaling_functions/{DATASET}_{VARIABLE}_scaling.png`
+
+### plot_profiles.py
+
+Generates vertical profile visualizations and statistics for LES datasets.
+
+#### Process
+
+For each dataset and variable:
+- Plots vertical profiles showing mean and ±1σ spatial variability
+- Calculates profile statistics:
+  - `mean_profile`: mean over all x, y, t dimensions
+  - `normalized_log_std`: standard deviation of ln(data/mean_profile) over all x, y, t
+
+#### Output
+
+- **PNG files**: `profiles/{DATASET}_t{TIMESTEP}_{VARIABLE}.png`
+- **NetCDF files**: `profiles/{DATASET}_profiles.nc` containing profile statistics
 
 ## Usage
 
-### Basic Loading
+### Basic Data Loading
 
 ```python
-from load_data import load_SAM_COMBLE
+from load_data import load_SAM_DYCOMS, load_HRRR
 
-# Load all timesteps of QC (cloud water)
-qc_data, (x, y, z) = load_SAM_COMBLE('QC', single_timestep=False)
-# Shape: (640, 640, 110, 3)
+# Load all timesteps
+data, (x, y, z) = load_SAM_DYCOMS('QV', single_timestep=False)
+# Shape: (nx, ny, nz, nt)
 
 # Load only first timestep
-qc_single, (x, y, z) = load_SAM_COMBLE('QC', single_timestep=True)
-# Shape: (640, 640, 110, 1)
+data, (x, y, z) = load_SAM_DYCOMS('QV', single_timestep=True)
+# Shape: (nx, ny, nz, 1)
+
+# Load HRRR with options
+data, (x, y, z) = load_HRRR('q', single_timestep=True,
+                             load_forecast=True, season='summer')
 ```
 
-### Generate Optical Depth Visualizations
+### Generate Scaling Function Analysis
 
 ```bash
-python plot_optical_depth.py
+# Compute structure functions and spectra
+python compute_scaling_functions.py
+
+# Plot the results
+python plot_scaling_functions.py
 ```
 
-This will process all five datasets and save visualizations to `optical_depth_images/`.
+### Generate Vertical Profiles
+
+```bash
+python plot_profiles.py
+```
+
+This will generate vertical profile plots and netCDF statistics for all configured datasets.
 
 ## Notes
 
@@ -121,15 +240,21 @@ This will process all five datasets and save visualizations to `optical_depth_im
 - Grid spacing (dx) is calculated from coordinate arrays as `dx = x[1] - x[0]`
 - Some datasets have combined condensate variables (QN) rather than separate liquid (QC) and ice (QI)
 - **Unit normalization**: Water/ice variables are normalized to g/kg across all datasets:
-  - SAM/COMBLE: QN, QI in g/kg (no conversion)
-  - SAM/DYCOMS: QN in g/kg (no conversion)
-  - SAM/TWPICE: QC, QI in g/kg (no conversion)
-  - SAM/RCEMIP: QN in g/kg (no conversion)
-  - CM1/RCEMIP: clw, cli in g/g → multiplied by 1000
+  - SAM datasets: QV, QC, QI, QN in g/kg (no conversion)
+  - CM1 datasets: clw, cli, hus in g/g → converted to g/kg (×1000) by load functions
+  - HRRR: q, clwmr, rwmr, snmr in kg/kg → converted to g/kg (×1000) by load function
+- **QT variable**: Total moisture calculated as sum of water vapor + cloud water + cloud ice
+  - SAM_COMBLE, SAM_TWPICE: QT = QV + QC + QI (or QV + QN + QI)
+  - SAM_DYCOMS, SAM_RCEMIP: QT = QV + QN
+  - CM1: QT = hus + clw + cli
+  - HRRR: QT = q + clwmr (optionally + snmr)
 
 ## Requirements
 
 - numpy
 - netCDF4
-- matplotlib
-- pathlib (standard library)
+- xarray (for HRRR GRIB2 files)
+- cfgrib (for HRRR GRIB2 files)
+- scipy (for HRRR interpolation)
+- matplotlib (for plotting scripts)
+- scaleinvariance (for compute_scaling_functions.py)
