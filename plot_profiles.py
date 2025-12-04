@@ -422,10 +422,10 @@ def main():
     print("Plotting vertical profiles for LES datasets")
     print("=" * 60)
 
-    plot_profiles_SAM_COMBLE()
-    plot_profiles_SAM_DYCOMS()
+    # plot_profiles_SAM_COMBLE()
+    # plot_profiles_SAM_DYCOMS()
     # plot_profiles_SAM_TWPICE()
-    plot_profiles_SAM_RCEMIP()
+    # plot_profiles_SAM_RCEMIP()
     plot_profiles_CM1_RCEMIP()
     plot_profiles_HRRR()
 

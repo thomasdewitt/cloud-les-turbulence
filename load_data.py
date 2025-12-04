@@ -290,6 +290,8 @@ def load_CM1_RCEMIP(variable, single_timestep=False):
             data_list.append(var_data)
 
     data = np.concatenate(data_list, axis=3)
+    if variable in ['clw', 'cli', 'hus']:
+        data = data * 1000  # convert to g/kg
 
     return data, (x, y, z)
 

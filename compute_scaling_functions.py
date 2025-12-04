@@ -18,7 +18,7 @@ import load_data
 # Altitude ranges for each dataset (meters)
 ALTITUDE_RANGES = {
     'SAM_COMBLE': (2000, 4000),
-    'SAM_DYCOMS': (10, 900),
+    'SAM_DYCOMS': (650, 850),
     'SAM_TWPICE': (5000, 10000),
     'SAM_RCEMIP': (5000, 10000),
     'SAM_RCEMIP_large': (5000, 10000),
@@ -29,18 +29,18 @@ ALTITUDE_RANGES = {
 
 # Variables to compute for each dataset
 DATASET_VARIABLES = {
-    'SAM_COMBLE': {
-        'U': 'U',
-        'W': 'W',
-        'QV': 'QV',
-        'QT': ['QV', 'QN', 'QI']
-    },
-    # 'SAM_DYCOMS': {
+    # 'SAM_COMBLE': {
     #     'U': 'U',
     #     'W': 'W',
     #     'QV': 'QV',
-    #     'QT': ['QV', 'QN']
+    #     'QT': ['QV', 'QN', 'QI']
     # },
+    'SAM_DYCOMS': {
+        'U': 'U',
+        'W': 'W',
+        'QV': 'QV',
+        'QT': ['QV', 'QN']
+    },
     # 'SAM_TWPICE': {
     #     'U': 'U',
     #     'W': 'W',
