@@ -23,7 +23,4 @@ venv/
 ehthumbs.db
 
 # Project output files
-optical_depth_images/
-profiles/
-scaling_functions/
 *.nc
